@@ -1,0 +1,52 @@
+# =====================================================
+# event_rgb_sync - .gitignore
+# =====================================================
+
+# --- 大容量入力データ ---
+input/events.csv
+input/sync_log.csv
+input/*.csv
+input/*.raw
+input/*.dat
+
+# --- 生成物（output ディレクトリ）---
+output/
+
+# --- C++ ビルドアーティファクト ---
+module2_timestamp_matching/build/
+module2_timestamp_matching/*.o
+module2_timestamp_matching/*.a
+
+# --- Python キャッシュ ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+
+# --- 仮想環境 ---
+.venv/
+venv/
+env/
+.env
+
+# --- エディタ・IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- macOS ---
+.DS_Store
+
+# --- Jupyter ---
+*.ipynb_checkpoints/
+
+# --- ログ・一時ファイル ---
+*.log
+*.tmp
+
+# --- config/ は追跡対象（params.json はコミットする）---
+# ただし led_region.json は環境依存のため除外
+config/led_region.json

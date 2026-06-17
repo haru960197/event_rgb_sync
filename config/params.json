@@ -1,0 +1,10 @@
+{
+  "module1": {
+    "accumulation_time_us": 5000000
+  },
+  "module2": {
+    "time_bin_us": 5000,
+    "burst_threshold_count": 50,
+    "slope_threshold": 15.0
+  }
+}
