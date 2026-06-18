@@ -266,7 +266,8 @@ rgb_ms = event_us_to_rgb_ms(500000)
 ```json
 {
   "module1": {
-    "accumulation_time_us": 5000000
+    "accumulation_time_us": 10000000,
+    "start_delay_us": 0
   },
   "module2": {
     "time_bin_us": 5000,
@@ -278,12 +279,13 @@ rgb_ms = event_us_to_rgb_ms(500000)
 
 | パラメータ | デフォルト | 説明 |
 |---|---|---|
-| `accumulation_time_us` | 5,000,000 | Module1: ヒートマップ生成に使う先頭時間 [us] |
+| `accumulation_time_us` | 10,000,000 | Module1: ヒートマップ生成に使う積算時間 [us] |
+| `start_delay_us` | 0 | Module1: イベントの積算開始を遅らせる時間 [us] （最初のイベント時刻を基準） |
 | `time_bin_us` | 5,000 | Module2: バースト検知の時間ビン幅 [us] |
 | `burst_threshold_count` | 50 | Module2: バースト判定カウント閾値 |
 | `slope_threshold` | 15.0 | Module2: バースト判定の傾き閾値 [カウント/ビン] |
 
-> **チューニングのヒント**: LEDの点滅周波数が高い場合は `time_bin_us` を小さくしてください。ノイズが多い環境では `burst_threshold_count` と `slope_threshold` を大きくしてください。
+> **チューニングのヒント**: LEDの点滅周波数が高い場合は `time_bin_us` を小さくしてください。ノイズが多い環境では `burst_threshold_count` と `slope_threshold` を大きくしてください。また、起動直後に不要なノイズ等が含まれる場合は `start_delay_us` を用いて積算対象から除外できます。
 
 ---
 
