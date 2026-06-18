@@ -164,12 +164,22 @@ private:
         bool is_burst = (count >= burst_threshold_) || (slope >= slope_threshold_);
 
         if (is_burst && !in_burst_) {
-            // バースト開始 → LED点灯タイミングとして記録
-            led_timestamps_.push_back(bin_start);
             in_burst_ = true;
-            std::cout << "[Module2] LED点灯検知 (イベント): "
-                      << bin_start << " us  (count=" << count
-                      << ", slope=" << slope << ")\n";
+            ++total_edge_count_;
+
+            if (total_edge_count_ == 1) {
+                // 【変更】1回目の検知エッジは破棄（イベントカメラが先に起動している
+                //         ため、最初のLED点灯はRGBカメラと非対称になる場合がある）
+                std::cout << "[Module2] LED点灯検知 (イベント) [SKIP 1st]: "
+                          << bin_start << " us  (count=" << count
+                          << ", slope=" << slope << ")\n";
+            } else {
+                // 2回目以降のみ有効なリストに追加
+                led_timestamps_.push_back(bin_start);
+                std::cout << "[Module2] LED点灯検知 (イベント) [" << total_edge_count_ << "]: "
+                          << bin_start << " us  (count=" << count
+                          << ", slope=" << slope << ")\n";
+            }
         } else if (!is_burst) {
             in_burst_ = false;
         }
@@ -187,6 +197,7 @@ private:
     int64_t     current_bin_count_  = 0;
     int64_t     prev_bin_count_     = 0;
     bool        in_burst_           = false;
+    int         total_edge_count_   = 0;  // 検知した総エッジ数（1回目破棄判定用）
 
     std::vector<TimestampUs> led_timestamps_;
 };
@@ -293,7 +304,15 @@ std::vector<TimestampMs> process_sync_log_csv(const fs::path& sync_log_file) {
     std::vector<TimestampMs> led_times_ms;
     std::string line;
     bool header_skipped = false;
-    int prev_status = -1;
+
+    // 【変更】ファイル先頭に led_status=1 が続くブロックを無視するため、
+    // prev_status の初期値を「まだ有効な 0 を見ていない」ことを示す -1 ではなく、
+    // 「先頭ブロック判定中」を示す専用フラグで管理する。
+    //
+    // seen_zero: 少なくとも1回は 0 を観測したか
+    // prev_status: 直前の有効な led_status
+    bool seen_zero  = false;
+    int  prev_status = -1;
 
     while (std::getline(fin, line)) {
         line = trim(line);
@@ -323,10 +342,19 @@ std::vector<TimestampMs> process_sync_log_csv(const fs::path& sync_log_file) {
         int status;
         try { status = std::stoi(trim(tok)); } catch (...) { continue; }
 
-        // led_status が 0→1 に切り替わった瞬間を検出
-        if (prev_status == 0 && status == 1) {
+        // 【変更】0 を初めて観測したら seen_zero フラグを立てる
+        if (status == 0) {
+            seen_zero = true;
+        }
+
+        // 【変更】「明確な 0→1 遷移」のみを検知。
+        // 条件: ① seen_zero が true（ファイル先頭の1ブロックは通過済み）
+        //      ② 直前の status が 0（＝prev_status == 0）
+        //      ③ 現在の status が 1
+        if (seen_zero && prev_status == 0 && status == 1) {
             led_times_ms.push_back(ts_ms);
-            std::cout << "[Module2] LED点灯検知 (RGB): " << ts_ms << " ms\n";
+            std::cout << "[Module2] LED点灯検知 (RGB) [" << led_times_ms.size() << "]: "
+                      << ts_ms << " ms\n";
         }
 
         prev_status = status;
