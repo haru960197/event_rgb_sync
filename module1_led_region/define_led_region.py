@@ -44,7 +44,7 @@ def load_params(params_file: str) -> dict:
 
 def build_event_heatmap(events_file: str, accumulation_time_us: int) -> np.ndarray:
     """
-    events.csv の先頭 accumulation_time_us [us] 分のONイベント（polarity=1）を
+    events.csv の先頭 accumulation_time_us [us] 分のON, OFFイベントを
     空間的に積算し、2Dヒートマップ（numpy配列）を返す。
 
     events.csv 仕様:
@@ -94,7 +94,6 @@ def build_event_heatmap(events_file: str, accumulation_time_us: int) -> np.ndarr
             try:
                 x = int(row[0].strip())
                 y = int(row[1].strip())
-                polarity = int(row[2].strip())
                 timestamp_us = int(row[3].strip())
             except (ValueError, IndexError):
                 continue  # ヘッダや不正行をスキップ
@@ -108,14 +107,13 @@ def build_event_heatmap(events_file: str, accumulation_time_us: int) -> np.ndarr
             if timestamp_us - start_time_us > accumulation_time_us:
                 break
 
-            # ONイベント（polarity=1）のみ積算
-            if polarity == 1:
-                if 0 <= x < width and 0 <= y < height:
-                    heatmap[y, x] += 1.0
-                    n_events_loaded += 1
+            # ON, OFF問わずイベントを積算
+            if 0 <= x < width and 0 <= y < height:
+                heatmap[y, x] += 1.0
+                n_events_loaded += 1
 
     elapsed_us = (timestamp_us - start_time_us) if start_time_us is not None else 0
-    print(f"[Module1] 積算完了: {n_events_loaded} ONイベント, 経過時間 {elapsed_us} us")
+    print(f"[Module1] 積算完了: {n_events_loaded} イベント, 経過時間 {elapsed_us} us")
     return heatmap
 
 

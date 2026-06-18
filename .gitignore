@@ -8,6 +8,8 @@ input/sync_log.csv
 input/*.csv
 input/*.raw
 input/*.dat
+input/*.h264
+input/*.mp4
 
 # --- 生成物（output ディレクトリ）---
 output/
@@ -50,3 +52,8 @@ env/
 # --- config/ は追跡対象（params.json はコミットする）---
 # ただし led_region.json は環境依存のため除外
 config/led_region.json
+
+
+# --- その他 ---
+fetch_files.sh
+

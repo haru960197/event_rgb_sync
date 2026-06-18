@@ -1,6 +1,6 @@
 {
   "module1": {
-    "accumulation_time_us": 5000000
+    "accumulation_time_us": 10000000
   },
   "module2": {
     "time_bin_us": 5000,
