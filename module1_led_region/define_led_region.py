@@ -42,16 +42,17 @@ def load_params(params_file: str) -> dict:
     return params["module1"]
 
 
-def build_event_heatmap(events_file: str, accumulation_time_us: int) -> np.ndarray:
+def build_event_heatmap(events_file: str, accumulation_time_us: int, start_delay_us: int = 0) -> np.ndarray:
     """
-    events.csv の先頭 accumulation_time_us [us] 分のON, OFFイベントを
-    空間的に積算し、2Dヒートマップ（numpy配列）を返す。
+    events.csv の最初のイベントの時刻から start_delay_us [us] 遅らせた時刻から
+    accumulation_time_us [us] 分のイベントを空間的に積算し、2Dヒートマップ（numpy配列）を返す。
 
     events.csv 仕様:
         - 1行目: ヘッダ行（"%geometry:320,320" のようなメタデータ → スキップ）
         - カラム: x, y, polarity, timestamp_us
     """
     heatmap = None
+    first_event_time_us = None
     start_time_us = None
     n_events_loaded = 0
 
@@ -98,10 +99,16 @@ def build_event_heatmap(events_file: str, accumulation_time_us: int) -> np.ndarr
             except (ValueError, IndexError):
                 continue  # ヘッダや不正行をスキップ
 
-            # 開始時刻を記録
-            if start_time_us is None:
-                start_time_us = timestamp_us
-                print(f"[Module1] 開始タイムスタンプ: {start_time_us} us")
+            # 最初のイベントのタイムスタンプを記録し、開始時刻を計算
+            if first_event_time_us is None:
+                first_event_time_us = timestamp_us
+                start_time_us = first_event_time_us + start_delay_us
+                print(f"[Module1] 最初のイベントタイムスタンプ: {first_event_time_us} us")
+                print(f"[Module1] 積算開始タイムスタンプ: {start_time_us} us (遅延: {start_delay_us} us)")
+
+            # 開始時刻に達する前はスキップ
+            if timestamp_us < start_time_us:
+                continue
 
             # 蓄積時間を超えたら終了
             if timestamp_us - start_time_us > accumulation_time_us:
@@ -112,7 +119,7 @@ def build_event_heatmap(events_file: str, accumulation_time_us: int) -> np.ndarr
                 heatmap[y, x] += 1.0
                 n_events_loaded += 1
 
-    elapsed_us = (timestamp_us - start_time_us) if start_time_us is not None else 0
+    elapsed_us = (timestamp_us - start_time_us) if (start_time_us is not None and timestamp_us >= start_time_us) else 0
     print(f"[Module1] 積算完了: {n_events_loaded} イベント, 経過時間 {elapsed_us} us")
     return heatmap
 
@@ -186,7 +193,9 @@ def main():
 
     params = load_params(PARAMS_FILE)
     accumulation_time_us = params["accumulation_time_us"]
+    start_delay_us = params.get("start_delay_us", 0)
     print(f"[Module1] accumulation_time_us = {accumulation_time_us} us")
+    print(f"[Module1] start_delay_us = {start_delay_us} us")
 
     # --- イベントデータ読み込みとヒートマップ生成 ---
     print(f"[Module1] イベントデータを読み込みます: {EVENTS_FILE}")
@@ -194,7 +203,7 @@ def main():
         print(f"[ERROR] {EVENTS_FILE} が見つかりません。input/ ディレクトリにデータを配置してください。")
         sys.exit(1)
 
-    heatmap = build_event_heatmap(EVENTS_FILE, accumulation_time_us)
+    heatmap = build_event_heatmap(EVENTS_FILE, accumulation_time_us, start_delay_us)
     gray_img = normalize_to_uint8(heatmap)
 
     # --- GUI でROI選択 ---
