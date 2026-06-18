@@ -180,6 +180,26 @@ python module1_led_region/define_led_region.py
 
 ---
 
+### ステップ 1.5: イベントレート可視化・パラメータチューニング（Module 1.5）
+
+> Module 2 を実行する前に、このツールで `burst_threshold_count` / `slope_threshold` が適切かどうかを確認することを推奨します。
+
+```bash
+python module1_5_tune_parameters/tune_parameters.py
+```
+
+**処理内容**:
+- `events.csv` をストリーム読み込みし、LED領域内のイベントのみを抽出
+- `time_bin_us` 刻みのビンごとにイベント数をカウント
+- **上段グラフ**: 時系列のイベントカウント + `burst_threshold_count` を赤破線で表示
+- **下段グラフ**: 前ビンとの差（傾き）+ `slope_threshold` を赤破線で表示
+
+グラフを見て、バックグラウンドノイズのレベルとLED点灯ピークの間に十分なマージンがあることを確認し、必要に応じて `config/params.json` の `module2` パラメータを調整してください。
+
+**出力**: `output/event_rate_plot.png`
+
+---
+
 ### ステップ 2: 時刻対応付け（Module 2）
 
 ```bash
