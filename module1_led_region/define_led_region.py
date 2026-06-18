@@ -124,11 +124,30 @@ def build_event_heatmap(events_file: str, accumulation_time_us: int, start_delay
     return heatmap
 
 
-def normalize_to_uint8(heatmap: np.ndarray) -> np.ndarray:
-    """ヒートマップを 0-255 の uint8 画像に正規化する。"""
-    if heatmap.max() == 0:
+def normalize_to_uint8(heatmap: np.ndarray, clip_percentile: float = 99.5) -> np.ndarray:
+    """
+    ヒートマップを対数変換し、指定されたパーセンタイル値でクリッピングしたのち、
+    0-255 の uint8 画像に正規化する。
+    """
+    # 1. np.log1p による対数変換
+    log_heatmap = np.log1p(heatmap)
+
+    if log_heatmap.max() == 0:
         return np.zeros_like(heatmap, dtype=np.uint8)
-    normalized = (heatmap / heatmap.max() * 255).astype(np.uint8)
+
+    # 2. clip_percentile でのクリッピング値計算
+    clip_value = np.percentile(log_heatmap, clip_percentile)
+    
+    # クリッピング値がほぼ0の場合は最大値を使用
+    if clip_value <= 1e-8:
+        clip_value = log_heatmap.max()
+        if clip_value <= 1e-8:
+            return np.zeros_like(heatmap, dtype=np.uint8)
+
+    clipped = np.clip(log_heatmap, 0, clip_value)
+
+    # 3. 0-255 グレースケールに正規化
+    normalized = (clipped / clip_value * 255).astype(np.uint8)
     return normalized
 
 
@@ -194,8 +213,10 @@ def main():
     params = load_params(PARAMS_FILE)
     accumulation_time_us = params["accumulation_time_us"]
     start_delay_us = params.get("start_delay_us", 0)
+    clip_percentile = params.get("clip_percentile", 99.5)
     print(f"[Module1] accumulation_time_us = {accumulation_time_us} us")
     print(f"[Module1] start_delay_us = {start_delay_us} us")
+    print(f"[Module1] clip_percentile = {clip_percentile} %")
 
     # --- イベントデータ読み込みとヒートマップ生成 ---
     print(f"[Module1] イベントデータを読み込みます: {EVENTS_FILE}")
@@ -204,7 +225,7 @@ def main():
         sys.exit(1)
 
     heatmap = build_event_heatmap(EVENTS_FILE, accumulation_time_us, start_delay_us)
-    gray_img = normalize_to_uint8(heatmap)
+    gray_img = normalize_to_uint8(heatmap, clip_percentile)
 
     # --- GUI でROI選択 ---
     result = select_roi_opencv(gray_img)
