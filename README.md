@@ -266,11 +266,12 @@ rgb_ms = event_us_to_rgb_ms(500000)
 ```json
 {
   "module1": {
-    "accumulation_time_us": 10000000,
-    "start_delay_us": 0
+    "accumulation_time_us": 50000000,
+    "start_delay_us": 7000000,
+    "clip_percentile": 99.5
   },
   "module2": {
-    "time_bin_us": 5000,
+    "time_bin_us": 50000,
     "burst_threshold_count": 50,
     "slope_threshold": 15.0
   }
