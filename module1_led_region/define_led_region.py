@@ -146,18 +146,18 @@ def normalize_to_uint8(heatmap: np.ndarray, clip_percentile: float = 99.5) -> np
 
     clipped = np.clip(log_heatmap, 0, clip_value)
 
-    # 3. 0-255 グレースケールに正規化
+    # 3. 0-255 の1チャンネル画像（ヒートマップのベース）に正規化
     normalized = (clipped / clip_value * 255).astype(np.uint8)
     return normalized
 
 
-def select_roi_opencv(gray_img: np.ndarray) -> tuple:
+def select_roi_opencv(heatmap_img: np.ndarray) -> tuple:
     """
     OpenCV の selectROI を使ってユーザーに矩形領域を選択させる。
     戻り値: (x_min, y_min, x_max, y_max)
     """
     # 見やすさのため COLORMAP_JET でカラーマップ化
-    color_img = cv2.applyColorMap(gray_img, cv2.COLORMAP_JET)
+    color_img = cv2.applyColorMap(heatmap_img, cv2.COLORMAP_JET)
 
     # 画像を2倍に拡大（小さいセンサの場合に操作しやすくする）
     scale = 2
@@ -225,10 +225,10 @@ def main():
         sys.exit(1)
 
     heatmap = build_event_heatmap(EVENTS_FILE, accumulation_time_us, start_delay_us)
-    gray_img = normalize_to_uint8(heatmap, clip_percentile)
+    heatmap_img = normalize_to_uint8(heatmap, clip_percentile)
 
     # --- GUI でROI選択 ---
-    result = select_roi_opencv(gray_img)
+    result = select_roi_opencv(heatmap_img)
     if result is None:
         print("[Module1] 領域が選択されなかったため終了します。")
         sys.exit(0)
