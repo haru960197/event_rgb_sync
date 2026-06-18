@@ -6,7 +6,7 @@
   },
   "module2": {
     "time_bin_us": 50000,
-    "burst_threshold_count": 50,
-    "slope_threshold": 15.0
+    "burst_threshold_count": 2200,
+    "slope_threshold": 1500
   }
 }
