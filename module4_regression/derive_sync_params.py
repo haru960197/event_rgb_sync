@@ -76,11 +76,25 @@ def linear_regression(event_us: np.ndarray, rgb_ms: np.ndarray) -> dict:
     return result
 
 
+import hashlib
+
+def _csv_sha256(csv_path: str) -> str:
+    """CSVファイルのSHA256ハッシュを返す（整合性チェック用）。"""
+    h = hashlib.sha256()
+    with open(csv_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def save_sync_params(params_path: str, result: dict):
-    """回帰結果を JSON ファイルに保存する。"""
+    """回帰結果を JSON ファイルに保存する。入力CSVのハッシュも記録する。"""
     os.makedirs(os.path.dirname(params_path), exist_ok=True)
+    result_to_save = dict(result)
+    result_to_save["source_csv_sha256"] = _csv_sha256(MATCHED_CSV)
+    result_to_save["source_csv"] = MATCHED_CSV
     with open(params_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
+        json.dump(result_to_save, f, indent=2)
     print(f"[Module4] 同期パラメータを保存しました: {params_path}")
 
 

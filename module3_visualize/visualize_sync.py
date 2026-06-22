@@ -52,12 +52,41 @@ def load_matched_timestamps(csv_path: str) -> pd.DataFrame:
     return df
 
 
+import hashlib
+
+def _csv_sha256(csv_path: str) -> str:
+    """CSVファイルのSHA256ハッシュを返す（整合性チェック用）。"""
+    h = hashlib.sha256()
+    with open(csv_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def load_sync_params(params_path: str) -> dict | None:
-    """sync_params.json が存在すれば読み込んで返す。なければ None。"""
+    """sync_params.json が存在すれば読み込んで返す。なければ None。
+    matched_timestamps.csv のハッシュが記録されている場合、
+    現在のCSVと照合して不一致なら警告を出す（古い回帰結果の誤使用防止）。
+    """
     if not os.path.exists(params_path):
         return None
     with open(params_path, "r", encoding="utf-8") as f:
         params = json.load(f)
+
+    # --- 整合性チェック ---
+    saved_hash = params.get("source_csv_sha256")
+    if saved_hash and os.path.exists(MATCHED_CSV):
+        current_hash = _csv_sha256(MATCHED_CSV)
+        if saved_hash != current_hash:
+            print(
+                f"[WARN] sync_params.json は現在の matched_timestamps.csv と一致しません!\n"
+                f"       保存済みハッシュ: {saved_hash[:16]}...\n"
+                f"       現在のCSVハッシュ: {current_hash[:16]}...\n"
+                f"       Module4 を再実行して sync_params.json を更新してください。"
+            )
+        else:
+            print(f"[Module3] 整合性チェック OK: sync_params.json はCSVと一致しています。")
+
     print(f"[Module3] 線形回帰パラメータ読み込み: A={params.get('A')}, B={params.get('B')}")
     return params
 
