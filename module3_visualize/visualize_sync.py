@@ -94,32 +94,22 @@ def load_sync_params(params_path: str) -> dict | None:
 def plot_sync(df: pd.DataFrame, sync_params: dict | None, output_path: str):
     """
     散布図を描画する。sync_params が指定されていれば近似直線も描画する。
+    論文掲載用のシンプルなスタイル（白背景、単色プロット）。
     """
     event_us = df["event_time_us"].values
     rgb_ms   = df["rgb_time_ms"].values
 
-    fig, ax = plt.subplots(figsize=(10, 7))
-    fig.patch.set_facecolor("#1a1a2e")
-    ax.set_facecolor("#16213e")
+    fig, ax = plt.subplots(figsize=(8, 6))
 
-    # --- 散布図 ---
-    sc = ax.scatter(
+    # --- 散布図（単色） ---
+    ax.scatter(
         event_us, rgb_ms,
-        c=np.arange(len(event_us)),
-        cmap="plasma",
-        s=80,
-        edgecolors="#ffffff",
-        linewidths=0.5,
-        alpha=0.85,
+        color="C0",
+        s=40,
+        alpha=0.7,
         zorder=3,
         label="Matched LED timestamps"
     )
-
-    # カラーバー（点灯順を色で示す）
-    cbar = fig.colorbar(sc, ax=ax, pad=0.02)
-    cbar.set_label("LED flash index", color="#cccccc", fontsize=11)
-    cbar.ax.yaxis.set_tick_params(color="#cccccc")
-    plt.setp(cbar.ax.yaxis.get_ticklabels(), color="#cccccc")
 
     # --- 近似直線 ---
     if sync_params is not None:
@@ -129,47 +119,28 @@ def plot_sync(df: pd.DataFrame, sync_params: dict | None, output_path: str):
         y_line = A * x_line + B
         ax.plot(
             x_line, y_line,
-            color="#00d4ff",
-            linewidth=2.5,
+            color="C1",
+            linewidth=1.5,
             linestyle="--",
-            alpha=0.9,
             zorder=4,
-            label=f"Linear fit: y = {A:.6e}·x + {B:.4f}"
-        )
-
-        # 残差の RMS を計算して表示
-        y_pred = A * event_us + B
-        residuals = rgb_ms - y_pred
-        rms = np.sqrt(np.mean(residuals**2))
-        ax.text(
-            0.03, 0.95,
-            f"RMS residual: {rms:.4f} ms",
-            transform=ax.transAxes,
-            color="#ffdd57",
-            fontsize=11,
-            verticalalignment="top",
-            bbox=dict(facecolor="#0f3460", alpha=0.7, edgecolor="#00d4ff", boxstyle="round,pad=0.4")
+            label=f"Linear fit: $y = {A:.4e} \\cdot x + {B:.4f}$"
         )
 
     # --- 軸設定 ---
-    ax.set_xlabel("Event Camera Timestamp [us]", color="#cccccc", fontsize=13, labelpad=10)
-    ax.set_ylabel("RGB Camera Timestamp [ms]",   color="#cccccc", fontsize=13, labelpad=10)
-    ax.set_title("RGB ↔ Event Camera Time Synchronization", color="#ffffff", fontsize=16, pad=15)
+    ax.set_xlabel("Event Camera Timestamp [us]", fontsize=12)
+    ax.set_ylabel("RGB Camera Timestamp [ms]", fontsize=12)
+    ax.set_title("RGB \u2194 Event Camera Time Synchronization", fontsize=13)
 
-    ax.tick_params(colors="#aaaaaa", labelsize=10)
     ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.0f"))
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
 
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#444466")
-
-    ax.grid(True, color="#334466", linewidth=0.5, linestyle="--", alpha=0.6)
-    ax.legend(facecolor="#0f3460", edgecolor="#00d4ff", labelcolor="#ffffff", fontsize=11)
+    ax.grid(True, linewidth=0.5, linestyle="--", alpha=0.5)
+    ax.legend(fontsize=10, framealpha=0.8)
 
     # --- 保存・表示 ---
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     print(f"[Module3] プロット保存: {output_path}")
     plt.show()
 
