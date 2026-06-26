@@ -101,9 +101,13 @@ def plot_sync(df: pd.DataFrame, sync_params: dict | None, output_path: str):
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
+    # --- X軸スケーリング（1e6 μs 単位に変換） ---
+    SCALE = 1e6
+    event_x = event_us / SCALE
+
     # --- 散布図（単色） ---
     ax.scatter(
-        event_us, rgb_ms,
+        event_x, rgb_ms,
         color="C0",
         s=40,
         alpha=0.7,
@@ -115,23 +119,26 @@ def plot_sync(df: pd.DataFrame, sync_params: dict | None, output_path: str):
     if sync_params is not None:
         A = sync_params["A"]
         B = sync_params["B"]
-        x_line = np.linspace(event_us.min(), event_us.max(), 200)
-        y_line = A * x_line + B
+        # 元の単位で近似: rgb_ms = A * event_us + B
+        # スケール後: rgb_ms = (A * SCALE) * event_x + B
+        A_scaled = A * SCALE
+        x_line = np.linspace(event_x.min(), event_x.max(), 200)
+        y_line = A_scaled * x_line + B
         ax.plot(
             x_line, y_line,
             color="C1",
             linewidth=1.5,
             linestyle="--",
             zorder=4,
-            label=f"Linear fit: $y = {A:.4e} \\cdot x + {B:.4f}$"
+            label=f"Linear fit: $y = {A_scaled:.4f} \\cdot x {B:+.4f}$"
         )
 
     # --- 軸設定 ---
-    ax.set_xlabel("Event Camera Timestamp [us]", fontsize=12)
+    ax.set_xlabel(r"Event Camera Timestamp [$\times 10^6\ \mu$s]", fontsize=12)
     ax.set_ylabel("RGB Camera Timestamp [ms]", fontsize=12)
     ax.set_title("RGB \u2194 Event Camera Time Synchronization", fontsize=13)
 
-    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.0f"))
+    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
 
     ax.grid(True, linewidth=0.5, linestyle="--", alpha=0.5)
